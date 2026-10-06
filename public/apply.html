@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Funding Application</title>
+<style>
+:root{--ink:#14181f;--ink2:#5b6472;--line:#dfe3ea;--bg:#f5f7fa;--card:#fff;--accent:#0a7d4f;--accent2:#e8f5ee;--err:#c62828}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+header{background:var(--card);border-bottom:1px solid var(--line);padding:16px 20px}
+header b{font-size:17px}
+header span{display:block;color:var(--ink2);font-size:13px;margin-top:2px}
+main{max-width:720px;margin:0 auto;padding:20px 16px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px}
+h2{font-size:16px;margin-bottom:4px}
+.sub{color:var(--ink2);font-size:13px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.full{grid-column:1/-1}
+label{display:block;font-size:13px;font-weight:600;margin-bottom:4px}
+label i{color:var(--err);font-style:normal}
+input,select,textarea{width:100%;font:inherit;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff;color:var(--ink)}
+input:focus,select:focus{outline:2px solid var(--accent2);border-color:var(--accent)}
+button{font:inherit;font-weight:600;border:0;border-radius:8px;padding:12px 18px;cursor:pointer;background:var(--accent);color:#fff}
+button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+button:disabled{opacity:.5;cursor:not-allowed}
+canvas{width:100%;height:150px;border:1px dashed #aab2bf;border-radius:8px;background:#fff;touch-action:none;display:block}
+.auth{font-size:12px;color:var(--ink2);background:var(--bg);border-radius:8px;padding:12px;margin:12px 0;max-height:150px;overflow:auto}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:13px;font-weight:400}
+.check input{width:auto;margin-top:3px}
+.drop{border:2px dashed #aab2bf;border-radius:10px;padding:26px;text-align:center;color:var(--ink2);cursor:pointer}
+.drop.over{border-color:var(--accent);background:var(--accent2)}
+.files div{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.ok{background:var(--accent2);color:var(--accent);border-radius:8px;padding:12px 14px;font-weight:600;margin-bottom:12px}
+.err{color:var(--err);font-size:14px;margin-top:10px}
+.lock{font-size:12px;color:var(--ink2);text-align:center;margin-top:14px}
+@media (max-width:560px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><b id="co">Funding Application</b><span id="rep"></span></header>
+<main>
+  <div id="loading" class="card">Loading…</div>
+  <div id="expired" class="card" style="display:none">This link is no longer active. Please contact your funding specialist for a new one.</div>
+
+  <form id="appForm" style="display:none" autocomplete="on">
+    <div id="needMsg" class="ok" style="display:none;background:#fff7e0;border-color:#f0c040;color:#7a5a00"></div>
+    <div id="signedMsg" class="ok" style="display:none">✓ Your application is signed. You can update it below or just upload your statements.</div>
+    <div class="card"><h2>Business</h2><div class="sub">Takes about 3 minutes.</div><div class="grid">
+      <div class="full"><label>Legal business name <i>*</i></label><input name="legal_name" required autocomplete="organization"></div>
+      <div><label>DBA (if different)</label><input name="dba"></div>
+      <div><label>EIN / Tax ID</label><input name="ein" inputmode="numeric"></div>
+      <div><label>Entity type</label><select name="entity_type"><option value="">Select…</option><option>LLC</option><option>Corporation</option><option>S-Corp</option><option>Sole proprietor</option><option>Partnership</option></select></div>
+      <div><label>Business start date</label><input name="start_date" type="date"></div>
+      <div><label>Industry</label><input name="industry" placeholder="e.g. Restaurant, Trucking"></div>
+      <div><label>Business phone</label><input name="business_phone" type="tel"></div>
+      <div class="full"><label>Business address</label><input name="address" autocomplete="street-address"></div>
+      <div><label>City</label><input name="city"></div>
+      <div class="grid" style="gap:12px"><div><label>State</label><input name="state" maxlength="2" style="text-transform:uppercase"></div><div><label>ZIP</label><input name="zip" inputmode="numeric"></div></div>
+      <div class="full"><label>Website</label><input name="website"></div>
+    </div></div>
+
+    <div class="card"><h2>Funding</h2><div class="grid">
+      <div><label>Amount requested</label><input name="amount_requested" inputmode="decimal" placeholder="$"></div>
+      <div><label>Average monthly revenue <i>*</i></label><input name="monthly_revenue" inputmode="decimal" placeholder="$" required></div>
+      <div class="full"><label>What will you use the funds for?</label><input name="use_of_funds"></div>
+      <div><label>Open advances / loans</label><select name="existing_positions"><option value="">Select…</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4+</option></select></div>
+      <div><label>Business bank</label><input name="bank_name"></div>
+      <div class="full"><label>Current lenders &amp; balances (if any)</label><input name="existing_lenders"></div>
+    </div></div>
+
+    <div class="card"><h2>Owner</h2><div class="grid">
+      <div><label>Full name <i>*</i></label><input name="owner_name" required autocomplete="name"></div>
+      <div><label>Title</label><input name="owner_title" placeholder="Owner, CEO…"></div>
+      <div><label>Ownership %</label><input name="ownership_pct" inputmode="numeric"></div>
+      <div><label>Est. credit score</label><select name="fico_estimate"><option value="">Select…</option><option value="750">750+</option><option value="700">700–749</option><option value="650">650–699</option><option value="600">600–649</option><option value="550">550–599</option><option value="500">Below 550</option></select></div>
+      <div><label>Email</label><input name="owner_email" type="email" autocomplete="email"></div>
+      <div><label>Cell</label><input name="owner_cell" type="tel" autocomplete="tel"></div>
+      <div class="full"><label>Home address</label><input name="owner_address"></div>
+      <div><label>City</label><input name="owner_city"></div>
+      <div class="grid" style="gap:12px"><div><label>State</label><input name="owner_state" maxlength="2" style="text-transform:uppercase"></div><div><label>ZIP</label><input name="owner_zip" inputmode="numeric"></div></div>
+      <div><label>Date of birth <i>*</i></label><input name="owner_dob" type="date" required></div>
+      <div><label>Social Security # <i>*</i></label><input name="owner_ssn" inputmode="numeric" autocomplete="off" placeholder="•••-••-••••" required></div>
+    </div></div>
+
+    <div class="card"><h2>Sign</h2>
+      <div class="auth" id="authText"></div>
+      <label>Type your full name <i>*</i></label><input id="signedName" required>
+      <label style="margin-top:12px">Sign below <i>*</i> <span style="font-weight:400;color:var(--ink2)">— use your finger or mouse</span></label>
+      <canvas id="sig"></canvas><button type="button" class="ghost" style="margin-top:6px;padding:6px 12px;font-size:13px" onclick="clearSig()">Clear</button>
+      <label class="check" style="margin-top:14px"><input type="checkbox" id="agree"> I have read and agree to the authorization above.</label>
+      <div class="err" id="err"></div>
+      <button type="submit" id="submitBtn" style="width:100%;margin-top:14px">Sign &amp; submit application</button>
+      <div class="lock">🔒 Your information is encrypted and only shared to evaluate your funding request.</div>
+    </div>
+  </form>
+
+  <div id="uploadCard" class="card" style="display:none"><h2>Bank statements</h2><div class="sub">Upload your last 4 months of <b>business</b> bank statements (PDF from your bank is best). You can also add a driver's license or voided check.</div>
+    <select id="kind" style="margin-bottom:10px"><option value="statement">Bank statements</option><option value="id">Driver's license / ID</option><option value="voided_check">Voided check</option><option value="other">Other</option></select>
+    <div class="drop" id="drop">Tap to choose files, or drag them here<input type="file" id="fileIn" multiple accept=".pdf,.png,.jpg,.jpeg,.heic" style="display:none"></div>
+    <div class="err" id="upErr"></div>
+    <div class="files" id="files" style="margin-top:12px"></div>
+  </div>
+</main>
+<script>
+const token = location.pathname.split('/').pop();
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let company = '';
+async function load() {
+  const r = await fetch('/apply-api/' + token);
+  $('#loading').style.display = 'none';
+  if (!r.ok) { $('#expired').style.display = 'block'; return; }
+  const d = await r.json();
+  company = d.company;
+  document.title = company + ' — Funding Application';
+  $('#co').textContent = company;
+  $('#rep').textContent = d.rep ? 'Your funding specialist: ' + d.rep : '';
+  $('#authText').textContent = `By signing below, the business and each owner listed above (together, "Applicant") certify that the information in this application and all documents provided are true and complete. Applicant authorizes ${company} and its funding partners, agents and assigns to obtain business and personal credit reports, verify any information provided (including bank and trade references), and share this application and supporting documents with funding partners for the purpose of evaluating a business funding request. This authorization remains valid for the life of any resulting agreement and for future funding requests. A copy of this authorization is as valid as the original.`;
+  const f = $('#appForm');
+  for (const [k, v] of Object.entries(d.app || {})) if (f.elements[k] && v && !String(v).includes('•')) f.elements[k].value = v;
+  f.style.display = 'block'; $('#uploadCard').style.display = 'block';
+  if (d.signed) { $('#signedMsg').style.display = 'block'; $('#submitBtn').textContent = 'Update & re-sign'; for (const k of ['owner_ssn', 'owner_dob']) f.elements[k].required = false; }
+  showNeeded(d.needed || []);
+  showFiles(d.files || []);
+  setupSig();
+}
+// signature pad
+let ctx, drawing = false, dirty = false;
+function setupSig() {
+  const c = $('#sig'), ratio = window.devicePixelRatio || 1;
+  c.width = c.offsetWidth * ratio; c.height = c.offsetHeight * ratio;
+  ctx = c.getContext('2d'); ctx.scale(ratio, ratio); ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.strokeStyle = '#111';
+  const pos = e => { const r = c.getBoundingClientRect(); const p = e.touches ? e.touches[0] : e; return [p.clientX - r.left, p.clientY - r.top]; };
+  const start = e => { e.preventDefault(); drawing = true; dirty = true; ctx.beginPath(); ctx.moveTo(...pos(e)); };
+  const move = e => { if (!drawing) return; e.preventDefault(); ctx.lineTo(...pos(e)); ctx.stroke(); };
+  const end = () => drawing = false;
+  c.addEventListener('pointerdown', start); c.addEventListener('pointermove', move); window.addEventListener('pointerup', end);
+}
+function clearSig() { const c = $('#sig'); ctx.clearRect(0, 0, c.width, c.height); dirty = false; }
+$('#appForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const err = $('#err'); err.textContent = '';
+  if (!$('#signedName').value.trim()) return err.textContent = 'Please type your full name.';
+  if (!dirty) return err.textContent = 'Please sign in the box.';
+  if (!$('#agree').checked) return err.textContent = 'Please check the authorization box.';
+  const body = Object.fromEntries(new FormData(e.target).entries());
+  body.signed_name = $('#signedName').value.trim(); body.agree = true;
+  // signature on white background
+  const c = $('#sig'), out = document.createElement('canvas'); out.width = c.width; out.height = c.height;
+  const o = out.getContext('2d'); o.fillStyle = '#fff'; o.fillRect(0, 0, out.width, out.height); o.drawImage(c, 0, 0);
+  body.signature = out.toDataURL('image/png');
+  const btn = $('#submitBtn'); btn.disabled = true; btn.textContent = 'Submitting…';
+  const r = await fetch('/apply-api/' + token, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  btn.disabled = false; btn.textContent = 'Update & re-sign';
+  if (!r.ok) return err.textContent = j.error || 'Something went wrong — please try again.';
+  $('#signedMsg').style.display = 'block'; $('#signedMsg').textContent = '✓ Application signed. Now upload your bank statements below.';
+  $('#uploadCard').scrollIntoView({ behavior: 'smooth' });
+});
+// uploads
+const drop = $('#drop'), fileIn = $('#fileIn');
+drop.onclick = () => fileIn.click();
+drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
+drop.ondragleave = () => drop.classList.remove('over');
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); upload(e.dataTransfer.files); };
+fileIn.onchange = () => upload(fileIn.files);
+async function upload(list) {
+  if (!list.length) return;
+  $('#upErr').textContent = '';
+  const fd = new FormData(); fd.append('kind', $('#kind').value);
+  for (const f of list) { if (f.size > 25 * 1024 * 1024) return $('#upErr').textContent = f.name + ' is larger than 25 MB.'; fd.append('files', f); }
+  drop.textContent = 'Uploading…';
+  const r = await fetch('/apply-api/' + token + '/files', { method: 'POST', body: fd });
+  const j = await r.json().catch(() => ({}));
+  drop.innerHTML = 'Tap to choose files, or drag them here'; drop.appendChild(fileIn); fileIn.value = '';
+  if (!r.ok) return $('#upErr').textContent = j.error || 'Upload failed — please try again.';
+  const d = await (await fetch('/apply-api/' + token)).json(); showNeeded(d.needed || []); showFiles(d.files || []);
+}
+function showNeeded(n) { const el = $('#needMsg'); if (!n.length) { el.style.display = 'none'; return; } el.style.display = 'block'; el.innerHTML = '<b>Still needed:</b> ' + n.map(esc).join(' · '); }
+function showFiles(files) {
+  $('#files').innerHTML = files.length ? '<div style="font-weight:600;border:0">Received</div>' + files.map(f => `<div><span>✓ ${esc(f.name)}</span><span style="color:var(--ink2)">${esc(f.kind.replace('_', ' '))}</span></div>`).join('') : '';
+}
+load();
+</script>
+</body>
+</html>

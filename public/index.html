@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PowerDial CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="/vendor/twilio.min.js"></script>
+<style>
+:root{
+  --bg:#0a0c0f;--panel:#111418;--panel2:#161b22;--panel3:#1c222b;--border:#21262d;--border2:#30363d;
+  --green:#00ff88;--green-dim:#00cc6a;--green-bg:rgba(0,255,136,.08);
+  --red:#ff4757;--red-bg:rgba(255,71,87,.1);--amber:#ffb700;--amber-bg:rgba(255,183,0,.1);
+  --blue:#58a6ff;--blue-bg:rgba(88,166,255,.1);--purple:#bc8cff;--purple-bg:rgba(188,140,255,.1);
+  --text:#e6edf3;--text2:#8b949e;--text3:#5a626c;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:13px;overflow:hidden}
+a{color:var(--blue);text-decoration:none} a:hover{text-decoration:underline}
+button{font-family:inherit;font-size:12px;cursor:pointer;border:1px solid var(--border2);background:var(--panel2);color:var(--text);padding:7px 12px;border-radius:6px;transition:.12s;white-space:nowrap}
+button:hover:not(:disabled){border-color:var(--text3);background:var(--panel3)}
+button:disabled{opacity:.35;cursor:not-allowed}
+button.primary{background:var(--green);color:#04120a;border-color:var(--green);font-weight:600}
+button.primary:hover:not(:disabled){background:var(--green-dim)}
+button.danger{background:var(--red-bg);color:var(--red);border-color:rgba(255,71,87,.4)}
+button.on{background:var(--green-bg);color:var(--green);border-color:rgba(0,255,136,.4)}
+button.sm{padding:4px 8px;font-size:11px}
+button.link{background:none;border:0;color:var(--blue);padding:0}
+input,select,textarea{font-family:inherit;font-size:12px;background:var(--bg);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:7px 9px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--green-dim)}
+input[type=checkbox]{accent-color:var(--green)}
+textarea{resize:vertical;width:100%}
+.mono{font-family:var(--mono)} .muted{color:var(--text2)} .faint{color:var(--text3)}
+.row{display:flex;gap:8px;align-items:center} .grow{flex:1} .wrap{flex-wrap:wrap}
+.hidden{display:none!important}
+
+/* shell */
+#app{display:grid;grid-template-columns:200px 1fr;grid-template-rows:52px 1fr;height:100vh}
+header{grid-column:1/3;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:18px;padding:0 16px}
+.logo{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--green);display:flex;align-items:center;gap:8px;width:168px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--text3);flex:none}
+.dot.live{background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.4}}
+.stats{display:flex;gap:20px;font-family:var(--mono)}
+.stat{display:flex;flex-direction:column;align-items:center;line-height:1.2}
+.stat b{font-size:14px;font-weight:600}
+.stat span{font-size:9.5px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+#livebar{display:none;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;padding:6px 12px;border-radius:20px;background:var(--green-bg);border:1px solid rgba(0,255,136,.4);color:var(--green);cursor:pointer}
+#livebar.dialing{background:var(--amber-bg);border-color:rgba(255,183,0,.4);color:var(--amber)}
+#livebar.wrap{background:var(--blue-bg);border-color:rgba(88,166,255,.4);color:var(--blue)}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.pill{font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border2);color:var(--text2)}
+.pill.ok{color:var(--green);border-color:rgba(0,255,136,.35)} .pill.bad{color:var(--red);border-color:rgba(255,71,87,.35)}
+nav{background:var(--panel);border-right:1px solid var(--border);padding:12px 8px;display:flex;flex-direction:column;gap:2px}
+nav a{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:7px;color:var(--text2);font-weight:500}
+nav a:hover{background:var(--panel2);text-decoration:none;color:var(--text)}
+nav a.act{background:var(--green-bg);color:var(--green)}
+nav .cnt{font-family:var(--mono);font-size:10px;background:var(--red);color:#fff;border-radius:10px;padding:1px 6px}
+nav .me{margin-top:auto;padding:10px 12px;border-top:1px solid var(--border);font-size:12px}
+#view{overflow:auto;padding:18px 22px}
+.vtitle{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.vtitle h1{font-size:19px;font-weight:600}
+
+/* cards / tables */
+.card{border:1px solid var(--border2);background:var(--panel);border-radius:10px;padding:14px 16px}
+.card h3{font-size:12px;font-family:var(--mono);color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;font-weight:500}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-family:var(--mono);font-size:10px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;border-bottom:1px solid var(--border2);white-space:nowrap;position:sticky;top:0;background:var(--panel)}
+td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+tr.click:hover td{background:var(--panel2);cursor:pointer}
+.tablewrap{border:1px solid var(--border2);border-radius:10px;background:var(--panel);overflow:auto}
+.badge{display:inline-block;font-family:var(--mono);font-size:9.5px;padding:2px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.4px;border:1px solid var(--border2);color:var(--text2);white-space:nowrap}
+.badge.new{color:var(--blue);border-color:rgba(88,166,255,.35)}
+.badge.callback{color:var(--amber);border-color:rgba(255,183,0,.35)}
+.badge.dnc{color:var(--red);border-color:rgba(255,71,87,.35)}
+.badge.good{color:var(--green);border-color:rgba(0,255,136,.35)}
+.badge.aib{color:var(--purple);border-color:rgba(188,140,255,.35)}
+.pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:10px;color:var(--text2)}
+.empty{color:var(--text3);text-align:center;padding:30px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.kpi{border:1px solid var(--border2);background:var(--panel);border-radius:10px;padding:12px 14px}
+.kpi b{font-family:var(--mono);font-size:22px;font-weight:600;display:block}
+.kpi span{font-size:11px;color:var(--text2)}
+
+/* dialer */
+.dialer{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.controls .sep{width:1px;height:24px;background:var(--border2);margin:0 2px}
+.controls label{display:flex;align-items:center;gap:6px;color:var(--text2)}
+.banner{border:1px solid var(--border2);background:var(--panel);border-radius:10px;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.banner .ph{font-family:var(--mono);font-size:18px;font-weight:600}
+.banner .sm{color:var(--text2);margin-top:3px}
+.banner .tm{font-family:var(--mono);font-size:26px;color:var(--text2)}
+.banner.dialing{border-color:rgba(255,183,0,.5)} .banner.dialing .ph{color:var(--amber)}
+.banner.connected{border-color:var(--green);background:var(--green-bg)} .banner.connected .ph,.banner.connected .tm{color:var(--green)}
+.banner.wrap{border-color:rgba(88,166,255,.5)} .banner.wrap .ph{color:var(--blue)}
+#lines{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-bottom:12px}
+.line{border:1px solid var(--border2);border-radius:8px;padding:9px 11px;background:var(--panel)}
+.line .nm{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.line .st{font-family:var(--mono);font-size:10px;text-transform:uppercase;margin-top:5px;color:var(--text2)}
+.line.ringing .st{color:var(--amber)} .line.live{border-color:var(--green)} .line.live .st{color:var(--green)} .line.bad .st{color:var(--red)}
+.dispos{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.dispos button{padding:10px 6px}
+.dispos kbd{font-family:var(--mono);font-size:10px;color:var(--text3);margin-right:5px}
+.dispos .good{color:var(--green)} .dispos .warn{color:var(--amber)} .dispos .bad{color:var(--red)}
+.fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px 16px;margin:12px 0}
+.f span{display:block;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-family:var(--mono)}
+.f div{word-break:break-word}
+#scriptView{white-space:pre-wrap;line-height:1.6;font-size:13.5px}
+
+ #hotBox{position:fixed;top:64px;right:16px;z-index:60;display:flex;flex-direction:column;gap:8px;width:340px;max-width:92vw}
+.hotcard{background:var(--panel2);border:1px solid var(--green);box-shadow:0 6px 24px rgba(0,255,136,.18);border-radius:10px;padding:12px 14px;font-size:13px}
+.rptabs{display:flex;gap:2px;flex-wrap:wrap;border-bottom:1px solid var(--border);margin-bottom:14px}
+.rptabs a{padding:9px 14px;color:var(--text2);font-size:12.5px;border-bottom:2px solid transparent;text-decoration:none}
+.rptabs a:hover{color:var(--text)} .rptabs a.act{color:var(--green);border-bottom-color:var(--green)}
+.rpnote{color:var(--text2);font-size:12px;margin-bottom:12px;max-width:900px;line-height:1.5}
+.kpi em{font-style:normal;font-size:11px;margin-left:6px;font-family:var(--mono)}
+.rpcharts{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px;margin-bottom:18px}
+.rpbars{display:flex;align-items:flex-end;gap:2px;height:170px;margin-top:10px}
+.rpgrp{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end}
+.rpcols{flex:1;display:flex;align-items:flex-end;gap:1px}
+.rpcol{flex:1;min-height:1px;border-radius:2px 2px 0 0;position:relative;opacity:.85}
+.rpcol span{position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:9.5px;font-family:var(--mono);color:var(--text2);white-space:nowrap}
+.rpgrp label{font-size:9.5px;color:var(--text3);text-align:center;height:14px;margin-top:4px;overflow:hidden;white-space:nowrap;font-family:var(--mono)}
+.rplegend{display:flex;gap:14px;font-size:11px;color:var(--text2);margin-top:2px} .rplegend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
+.rptable th{cursor:pointer;white-space:nowrap;user-select:none} .rptable td{white-space:nowrap}
+.tabs{display:flex;border-bottom:1px solid var(--border)}
+.tabs button{flex:1;border:0;border-radius:0;background:none;color:var(--text2);padding:11px;font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid transparent}
+.tabs button.act{color:var(--green);border-bottom-color:var(--green)}
+.tabs button:hover:not(:disabled){background:var(--panel2)}
+code{font-family:var(--mono);font-size:11.5px;background:var(--bg);padding:1px 5px;border-radius:4px;border:1px solid var(--border)}
+/* lead profile */
+.profile{display:grid;grid-template-columns:300px 1fr 360px;gap:14px;align-items:start}
+.form label{display:block;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-family:var(--mono);margin:10px 0 3px}
+.form input,.form select{width:100%}
+.tl-item{border:1px solid var(--border2);border-radius:9px;background:var(--panel);padding:12px 14px;margin-bottom:10px}
+.tl-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tl-head .when{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--text3)}
+.tl-body{margin-top:8px;line-height:1.5}
+.ai{margin-top:10px;border:1px solid rgba(188,140,255,.3);background:var(--purple-bg);border-radius:8px;padding:10px 12px}
+.ai .lbl{font-family:var(--mono);font-size:10px;color:var(--purple);text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px}
+.ai ul{margin:4px 0 0 18px}
+.ai .facts{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;margin-top:8px;font-size:12px}
+.ai .facts span{color:var(--text2)}
+.transcript{white-space:pre-wrap;font-family:var(--mono);font-size:11.5px;line-height:1.55;max-height:300px;overflow:auto;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px;margin-top:8px}
+audio{width:100%;height:34px;margin-top:8px}
+details summary{cursor:pointer;color:var(--text2);font-size:12px;margin-top:8px}
+
+/* sms */
+.thread{display:flex;flex-direction:column;height:calc(100vh - 150px);border:1px solid var(--border2);border-radius:10px;background:var(--panel);overflow:hidden}
+.thread-head{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:6px}
+.msg{max-width:80%;padding:8px 11px;border-radius:12px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+.msg.in{align-self:flex-start;background:var(--panel3);border-bottom-left-radius:3px}
+.msg.out{align-self:flex-end;background:#0e3a26;border-bottom-right-radius:3px}
+.msg .meta{font-size:10px;color:var(--text3);margin-top:3px;font-family:var(--mono)}
+.msg.out .meta{text-align:right}
+.msg.failed{border:1px solid var(--red)}
+.day{align-self:center;font-family:var(--mono);font-size:10px;color:var(--text3);margin:8px 0}
+.composer{border-top:1px solid var(--border);padding:10px;display:flex;flex-direction:column;gap:6px}
+.composer textarea{min-height:60px}
+#tbox .thread{height:calc(100vh - 190px)}
+.inbox{display:grid;grid-template-columns:320px 1fr;gap:14px}
+.convs{border:1px solid var(--border2);border-radius:10px;background:var(--panel);height:calc(100vh - 150px);overflow-y:auto}
+.conv{padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer}
+.conv:hover{background:var(--panel2)} .conv.act{background:var(--blue-bg)}
+.conv .top{display:flex;justify-content:space-between;gap:8px}
+.conv .nm{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv .pv{color:var(--text2);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.conv.unread .nm{color:var(--green)}
+
+/* modal / toast / login */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:50}
+.modal-bg.show{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border2);border-radius:12px;padding:22px;width:540px;max-width:94vw;max-height:90vh;overflow-y:auto}
+.modal h3{font-size:16px;margin-bottom:14px}
+.modal.wide{width:960px}
+.mf{margin-bottom:12px} .mf label{display:block;font-size:11px;color:var(--text2);margin-bottom:4px} .mf input,.mf select{width:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.mact{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--border2);padding:10px 16px;border-radius:8px;display:none;z-index:60;max-width:80vw}
+#toast.err{border-color:var(--red);color:var(--red)}
+#login{display:flex;align-items:center;justify-content:center;height:100vh}
+#login form{width:340px}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+mark{background:#fde68a;color:#111;border-radius:2px;padding:0 2px}
+</style>
+</head>
+<body>
+<div id="login" class="hidden">
+  <form class="card" onsubmit="doLogin(event)">
+    <div class="logo" style="margin-bottom:18px;width:auto"><span class="dot live"></span>PowerDial CRM</div>
+    <div class="mf"><label>Email</label><input id="lEmail" type="email" autocomplete="username" required></div>
+    <div class="mf"><label>Password</label><input id="lPass" type="password" autocomplete="current-password" required></div>
+    <button class="primary" style="width:100%;padding:10px">Log in</button>
+  </form>
+</div>
+
+<div id="app" class="hidden">
+  <header>
+    <div class="logo"><span class="dot" id="liveDot"></span>PowerDial</div>
+    <div class="stats">
+      <div class="stat"><b id="stDials">0</b><span>Dials</span></div>
+      <div class="stat"><b id="stConn">0</b><span>Connects</span></div>
+      <div class="stat"><b id="stRate">0%</b><span>Rate</span></div>
+      <div class="stat"><b id="stTalk">0:00</b><span>Talk</span></div>
+      <div class="stat"><b id="stSess">0:00</b><span>Session</span></div>
+    </div>
+    <div id="livebar" onclick="go('#/dialer')"></div>
+    <div class="hdr-right">
+      <span class="pill" id="srvPill">● server</span>
+      <button id="hdrSession" onclick="toggleSession()">Start session</button>
+    </div>
+  </header>
+  <nav>
+    <a href="#/dialer" data-r="dialer">Dialer</a>
+    <a href="#/floor" data-r="floor">Sales floor</a>
+    <a href="#/needs" data-r="needs">Needs action <span class="cnt hidden" id="naCnt"></span></a>
+    <a href="#/pipeline" data-r="pipeline">Pipeline</a>
+    <a href="#/tasks" data-r="tasks">Tasks</a>
+    <a href="#/submissions" data-r="submissions">Submissions</a>
+    <a href="#/offers" data-r="offers">Offers</a>
+    <a href="#/leads" data-r="leads">Leads</a>
+    <a href="#/blasts" data-r="blasts">Text blasts</a>
+    <a href="#/inbox" data-r="inbox">Inbox <span class="cnt hidden" id="unreadCnt"></span></a>
+    <a href="#/calls" data-r="calls">Call history</a>
+    <a href="#/sequences" data-r="sequences">Sequences</a>
+    <a href="#/lenders" data-r="lenders">Lenders</a>
+    <a href="#/commissions" data-r="commissions">Commissions</a>
+    <a href="#/advances" data-r="advances">Advances</a>
+    <a href="#/payments" data-r="payments" class="admin-only">Payments</a>
+    <a href="#/distributions" data-r="distributions">Distributions</a>
+    <a href="#/dashboard" data-r="dashboard">Dashboard</a>
+    <a href="#/search" data-r="search">Search</a>
+    <a href="#/reports" data-r="reports" class="admin-only">Reports</a>
+    <a href="#/attribution" data-r="attribution" class="admin-only">Attribution</a>
+    <a href="#/pilot" data-r="pilot" class="admin-only">Pilot setup</a>
+    <a href="#/automation" data-r="automation" class="admin-only">Automation</a>
+    <a href="#/team" data-r="team" class="admin-only">Team &amp; setup</a>
+    <a href="#/settings" data-r="settings">My settings</a>
+    <div class="me"><div id="meName"></div><button class="link" onclick="logout()">Log out</button></div>
+  </nav>
+  <div id="view"></div>
+</div>
+
+<div class="modal-bg" id="modal"><div class="modal" id="modalBody"></div></div>
+<div id="toast"></div>
+<script src="/crm.js"></script>
+<script src="/reports.js"></script>
+<script src="/crm2.js"></script>
+<script src="/iso.js"></script>
+<script src="/money.js"></script>
+<script src="/pilot.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

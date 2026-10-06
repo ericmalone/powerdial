@@ -1,0 +1,31 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="robots" content="noindex"><title>Your funding offers</title>
+<style>:root{--ink:#14181f;--ink2:#5b6472;--line:#dfe3ea;--bg:#f5f7fa;--card:#fff;--accent:#0a7d4f;--accent2:#e8f5ee;--err:#c62828}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+header{background:var(--card);border-bottom:1px solid var(--line);padding:16px 20px}header b{font-size:17px}header span{display:block;color:var(--ink2);font-size:13px;margin-top:2px}
+main{max-width:760px;margin:0 auto;padding:20px 16px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px}
+h2{font-size:16px;margin-bottom:4px}.sub{color:var(--ink2);font-size:13px;margin-bottom:14px}
+input{width:100%;font:inherit;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+button{font:inherit;font-weight:600;border:0;border-radius:8px;padding:12px 18px;cursor:pointer;background:var(--accent);color:#fff}button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}button:disabled{opacity:.5}
+.err{color:var(--err);font-size:13px;margin-top:8px}.ok{background:var(--accent2);color:var(--accent);border-radius:8px;padding:12px;font-weight:600;margin-bottom:14px}
+.offers{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.offer{border:2px solid var(--line);border-radius:12px;padding:16px;background:#fff;display:flex;flex-direction:column;gap:6px}.offer.sel{border-color:var(--accent);background:var(--accent2)}
+.offer .lbl{font-size:12px;font-weight:700;color:var(--ink2);letter-spacing:.06em}.offer .amt{font-size:28px;font-weight:800}
+.row{display:flex;justify-content:space-between;font-size:14px;border-top:1px solid var(--line);padding-top:6px}.row span:first-child{color:var(--ink2)}</style></head>
+<body><header><b id="co"></b><span id="who"></span></header><main>
+<div class="card"><h2>Your funding offers</h2><div class="sub" id="biz">Compare the offers below, then pick the one you'd like to move forward with.</div><div id="done"></div><div class="offers" id="offers"></div><div class="err" id="err"></div></div>
+<div class="sub">An offer is not final until you sign a funding agreement. Questions? Call or text your funding specialist.</div></main>
+<script>
+const token=location.pathname.split('/').pop();let data=null,pick=null;
+const m=n=>n==null?'—':'$'+Math.round(n).toLocaleString('en-US');
+async function load(){const r=await fetch('/offer-api/'+token);if(!r.ok){document.body.innerHTML='<main><div class="card">This link has expired. Please contact your funding specialist.</div></main>';return}data=await r.json();
+document.getElementById('co').textContent=data.company;document.getElementById('who').textContent=data.rep?'Your specialist: '+data.rep:'';document.getElementById('biz').textContent='Offers for '+data.business+'. Pick the one you would like to move forward with.';
+if(data.chosen){pick=data.chosen;document.getElementById('done').innerHTML='<div class="ok">✓ You picked offer '+data.chosen+'. Your specialist will send the agreement shortly.</div>'}draw()}
+function draw(){const cadence=o=>o.freq==='weekly'?'week':'business day';document.getElementById('offers').innerHTML=data.offers.map(o=>'<div class="offer '+(pick===o.label?'sel':'')+'"><div class="lbl">OFFER '+o.label+(o.lender?' · '+o.lender:'')+'</div><div class="amt">'+m(o.amount)+'</div>'+
+'<div class="row"><span>You repay</span><b>'+m(o.payback)+'</b></div><div class="row"><span>Cost of funds</span><b>'+m(o.cost)+'</b></div><div class="row"><span>Factor rate</span><b>'+o.factor+'</b></div>'+
+'<div class="row"><span>Payment</span><b>'+m(o.payment)+' / '+cadence(o)+(o.payment_est?' (est.)':'')+'</b></div><div class="row"><span>Term</span><b>'+(o.term_days?'about '+o.term_days+' days':'—')+'</b></div>'+
+'<button style="margin-top:8px" '+(data.chosen&&data.chosen===o.label?'disabled':'')+' onclick="choose(\''+o.label+'\')">'+(data.chosen===o.label?'Selected':'Choose this offer')+'</button></div>').join('')||'<div class="sub">No offers to show yet.</div>'}
+async function choose(l){document.getElementById('err').textContent='';const r=await fetch('/offer-api/'+token+'/choose',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({label:l})});const j=await r.json().catch(()=>({}));
+if(!r.ok)return document.getElementById('err').textContent=j.error||'Something went wrong';data.chosen=l;pick=l;document.getElementById('done').innerHTML='<div class="ok">✓ Got it — you picked offer '+l+'. Your specialist will send the agreement shortly.</div>';draw()}
+load();</script></body></html>

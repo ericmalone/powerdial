@@ -1,0 +1,34 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="robots" content="noindex"><title>Funding agreement</title>
+<style>:root{--ink:#14181f;--ink2:#5b6472;--line:#dfe3ea;--bg:#f5f7fa;--card:#fff;--accent:#0a7d4f;--accent2:#e8f5ee;--err:#c62828}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+header{background:var(--card);border-bottom:1px solid var(--line);padding:16px 20px}header b{font-size:17px}header span{display:block;color:var(--ink2);font-size:13px;margin-top:2px}
+main{max-width:760px;margin:0 auto;padding:20px 16px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:16px}
+h2{font-size:16px;margin-bottom:4px}.sub{color:var(--ink2);font-size:13px;margin-bottom:14px}
+input{width:100%;font:inherit;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+button{font:inherit;font-weight:600;border:0;border-radius:8px;padding:12px 18px;cursor:pointer;background:var(--accent);color:#fff}button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}button:disabled{opacity:.5}
+.err{color:var(--err);font-size:13px;margin-top:8px}.ok{background:var(--accent2);color:var(--accent);border-radius:8px;padding:12px;font-weight:600;margin-bottom:14px}
+canvas{width:100%;height:150px;border:1px dashed #aab2bf;border-radius:8px;background:#fff;touch-action:none;display:block}
+.terms{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:14px;margin-bottom:14px}.terms span{color:var(--ink2)}
+.body{white-space:pre-wrap;font-size:13px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:14px;max-height:380px;overflow:auto}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:13px;margin:12px 0}.check input{width:auto;margin-top:3px}label{display:block;font-size:13px;font-weight:600;margin:12px 0 4px}</style></head>
+<body><header><b id="co"></b><span id="who"></span></header><main><div class="card"><h2 id="hd">Funding agreement</h2><div class="sub" id="sub"></div><div class="terms" id="terms"></div><div class="body" id="body"></div></div>
+<div class="card" id="signCard"><h2>Sign</h2><div id="msg"></div><label>Type your full name</label><input id="nm" autocomplete="name"><label>Sign in the box</label><canvas id="sig"></canvas><button class="ghost" style="margin-top:6px;padding:6px 12px;font-size:13px" onclick="clr()">Clear</button>
+<label class="check"><input type="checkbox" id="ag"><span>I have read this agreement and agree to its terms. I understand that typing my name and signing above is my legal electronic signature.</span></label><button id="go" onclick="sign()">Sign agreement</button><div class="err" id="err"></div></div></main>
+<script>
+const token=location.pathname.split('/').pop();let ctx,drawing=false,dirty=false;
+async function load(){const r=await fetch('/sign-api/'+token);if(!r.ok){document.body.innerHTML='<main><div class="card">This link has expired. Please contact your funding specialist.</div></main>';return}const d=await r.json();
+document.getElementById('co').textContent=d.company;document.getElementById('who').textContent=d.rep?'Your specialist: '+d.rep:'';document.getElementById('sub').textContent='Prepared for '+d.business;
+document.getElementById('terms').innerHTML=d.terms.map(t=>'<span>'+t[0]+'</span><b>'+t[1]+'</b>').join('');document.getElementById('body').textContent=d.body||'';
+if(d.signed){document.getElementById('signCard').innerHTML='<div class="ok">✓ Signed by '+d.signed_name+' on '+new Date(d.signed_at).toLocaleString()+'. Thank you — your specialist will be in touch about funding.</div>';return}setup()}
+function setup(){const c=document.getElementById('sig'),ratio=window.devicePixelRatio||1;c.width=c.offsetWidth*ratio;c.height=c.offsetHeight*ratio;ctx=c.getContext('2d');ctx.scale(ratio,ratio);ctx.lineWidth=2.2;ctx.lineCap='round';ctx.strokeStyle='#111';
+const pos=e=>{const r=c.getBoundingClientRect();const p=e.touches?e.touches[0]:e;return[p.clientX-r.left,p.clientY-r.top]};
+c.addEventListener('pointerdown',e=>{e.preventDefault();drawing=true;dirty=true;ctx.beginPath();ctx.moveTo(...pos(e))});c.addEventListener('pointermove',e=>{if(!drawing)return;e.preventDefault();ctx.lineTo(...pos(e));ctx.stroke()});window.addEventListener('pointerup',()=>drawing=false)}
+function clr(){const c=document.getElementById('sig');ctx.clearRect(0,0,c.width,c.height);dirty=false}
+async function sign(){const err=document.getElementById('err');err.textContent='';const name=document.getElementById('nm').value.trim();
+if(!name)return err.textContent='Please type your full name.';if(!dirty)return err.textContent='Please sign in the box.';if(!document.getElementById('ag').checked)return err.textContent='Please check the agreement box.';
+const c=document.getElementById('sig'),o=document.createElement('canvas');o.width=c.width;o.height=c.height;const x=o.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,o.width,o.height);x.drawImage(c,0,0);
+const b=document.getElementById('go');b.disabled=true;b.textContent='Signing…';const r=await fetch('/sign-api/'+token,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,agree:true,signature:o.toDataURL('image/png')})});const j=await r.json().catch(()=>({}));
+if(!r.ok){b.disabled=false;b.textContent='Sign agreement';return err.textContent=j.error||'Something went wrong'}load()}
+load();</script></body></html>
